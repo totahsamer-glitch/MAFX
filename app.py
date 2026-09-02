@@ -212,20 +212,23 @@ def run_screener(ticker_list, timeframe_label):
                     status = "Touch Bear"
 
                 if status:
+                    # Dynamic rounding precision based on price magnitude
+                    decimals = 4 if c_close < 1.0 else 2
+
                     results.append({
                         "Ticker": ticker,
                         "Status": status,
                         "Candles Ago": i - 1,
-                        "Last Price": round(c_close, 2),
-                        "MA High": round(c_ma_h, 2),
-                        "MA Low": round(c_ma_l, 2),
+                        "Last Price": round(c_close, decimals),
+                        "MA High": round(c_ma_h, decimals),
+                        "MA Low": round(c_ma_l, decimals),
                         "RSI (14)": last_rsi,
                         "MACD Signal": macd_cross_status,
                         "MACD Cross Ago": macd_cross_ago,
                         "SMA (13/34)": sma_cross_status,
                         "SMA Cross Ago": sma_cross_ago,
-                        "Prev Day High": round(prev_day_high, 2),
-                        "Prev Day Low": round(prev_day_low, 2),
+                        "Prev Day High": round(prev_day_high, decimals),
+                        "Prev Day Low": round(prev_day_low, decimals),
                     })
                     break
 
@@ -357,20 +360,24 @@ if not df_results.empty:
     df_recent = df_results[df_results["Candles Ago"] <= 3]
     df_older = df_results[df_results["Candles Ago"] > 3]
 
+    # Dynamically determine formatting string per column based on price thresholds across the whole result set
+    is_penny = (df_results["Last Price"] < 1.0).any() if "Last Price" in df_results.columns else False
+    price_format = "$%.4f" if is_penny else "$%.2f"
+
     column_formatting = {
         "Ticker": st.column_config.TextColumn("Ticker"),
         "Status": st.column_config.TextColumn("Signal Type"),
         "Candles Ago": st.column_config.NumberColumn(f"Candles Ago ({time_unit})"),
-        "Last Price": st.column_config.NumberColumn("Last Price", format="$%.2f"),
-        "MA High": st.column_config.NumberColumn("MA High (55)", format="$%.2f"),
-        "MA Low": st.column_config.NumberColumn("MA Low (55)", format="$%.2f"),
+        "Last Price": st.column_config.NumberColumn("Last Price", format=price_format),
+        "MA High": st.column_config.NumberColumn("MA High (55)", format=price_format),
+        "MA Low": st.column_config.NumberColumn("MA Low (55)", format=price_format),
         "RSI (14)": st.column_config.NumberColumn("RSI (14)", format="%.2f"),
         "MACD Signal": st.column_config.TextColumn("MACD Cross"),
         "MACD Cross Ago": st.column_config.NumberColumn(f"MACD Ago ({time_unit})"),
         "SMA (13/34)": st.column_config.TextColumn("SMA 13/34 Cross"),
         "SMA Cross Ago": st.column_config.NumberColumn(f"SMA Ago ({time_unit})"),
-        "Prev Day High": st.column_config.NumberColumn("Prev Day High", format="$%.2f"),
-        "Prev Day Low": st.column_config.NumberColumn("Prev Day Low", format="$%.2f"),
+        "Prev Day High": st.column_config.NumberColumn("Prev Day High", format=price_format),
+        "Prev Day Low": st.column_config.NumberColumn("Prev Day Low", format=price_format),
     }
 
     st.subheader(f"🔥 Active Signals (Last 3 {time_unit})")
